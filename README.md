@@ -163,54 +163,12 @@ Below is the step-by-step pipeline when a user uploads a resume and requests job
 * User chooses a job -> request `POST /suggestions/tailor`.
 * Node calls LLM service with (resume JSON + JD) to generate tailored summary + STAR bullets + cover letter.
 
-# 6. Data Model (sample)
-
-**MongoDB Collections (sample fields)**
-
-* `users`:
-
-  * `_id`, `name`, `email`, `passwordHash`, `createdAt`
-
-* `resumes`:
-
-  * `_id`, `userId`, `fileUrl`, `text`, `skills`, `embeddingId`, `status`, `createdAt`
-
-* `jobs`:
-
-  * `_id`, `source`, `externalId`, `company`, `title`, `location`, `salary`, `jdText`, `embeddingId`, `postedAt`
-
-* `matches`:
-
-  * `_id`, `userId`, `resumeId`, `jobId`, `scores`, `explanation`, `createdAt`
-
-* `suggestions`:
-
-  * `_id`, `resumeId`, `jobId`, `tailoredText`, `coverLetter`, `createdAt`
-
-# 7. API Endpoints (minimal)
-
-**Node/Express API**
-
-* `POST /auth/signup` — register
-* `POST /auth/login` — login
-* `POST /resume/upload` — upload resume
-* `GET  /resume/:id` — get parsed resume
-* `POST /recommend/:resumeId` — trigger recommendation & return jobs
-* `GET  /jobs/search` — search jobs
-* `POST /suggestions/tailor` — generate tailored bullets/cover letter
-
-**Flask ML Service**
-
-* `POST /ml/parse_and_embed` — parse resume, extract fields, create embedding, return resume JSON
-* `POST /ml/query_vector_db` — search vector DB for top-k jobs
-* `POST /ml/rerank` — rerank candidate jobs with model
-* `POST /ml/tailor_with_llm` — optional: call LLM to tailor resume
 
 # 8. Tech Stack & Libraries
 
 **Frontend**
 
-* Next.js, React
+* Next.js
 * Tailwind CSS, shadcn/ui
 * react-query (TanStack)
 
@@ -445,4 +403,38 @@ If you want, I can now:
 * Produce the exact Flask endpoints + example request/responses
 * Create the Next.js upload component and API integration
 
-Which one would you like next?
+## 🤖 AI/ML Tools Used
+
+This project integrates multiple AI/ML tools and libraries to build a real intelligent job recommender:
+
+### 1. **Resume Parsing (NLP)**
+- **spaCy** → Named Entity Recognition (extract skills, job titles, organizations, education).
+- **PyMuPDF / pdfminer / docx2txt** → Extract raw text from resumes (PDF/DOCX).
+
+### 2. **Semantic Embeddings**
+- **Hugging Face Sentence-Transformers** → Generate embeddings for resumes & job descriptions.
+  - Example models: `all-MiniLM-L6-v2`, `all-mpnet-base-v2`.
+- These embeddings allow **semantic similarity search** beyond simple keyword matching.
+
+### 3. **Vector Database**
+- **Qdrant / Pinecone / Weaviate** → Store embeddings and perform efficient vector search.
+- Enables fast retrieval of the most relevant jobs for a given resume.
+
+### 4. **Recommendation Engine**
+- **Cosine Similarity** → Base similarity scoring between resumes and jobs.
+- **Scikit-learn / XGBoost / LightGBM** (optional) → Train a learning-to-rank model to refine recommendations using:
+  - Embedding similarity
+  - Skill overlap percentage
+  - Experience & location match
+
+### 5. **Explainability (XAI)**
+- Custom Python logic to highlight:
+  - ✅ Matched Skills
+  - ⚠ Missing Skills
+- *(Optional)* **SHAP / LIME** → For explainable ML insights into recommendation scores.
+
+### 6. **Optional Enhancements**
+- **OpenAI / LLaMA / GPT (via Hugging Face)** → For:
+  - Resume rewriting suggestions
+  - Interview question generation
+  - Job description summarization
