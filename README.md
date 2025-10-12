@@ -198,57 +198,6 @@ Below is the step-by-step pipeline when a user uploads a resume and requests job
 
 > These steps assume you have Node.js, Python 3.10+, pip, Docker (optional) installed.
 
-## 9.1 Clone repo
-
-```bash
-git clone https://github.com/yourname/resume-recommender.git
-cd resume-recommender
-```
-
-## 9.2 Setup Node/Express API (server/)
-
-```bash
-cd server
-cp .env.example .env
-# edit .env with MONGODB_URI, S3 keys, FLASK_ML_SERVICE_URL
-npm install
-npm run dev
-```
-
-**.env.example (server)**
-
-```
-PORT=4000
-MONGODB_URI=mongodb+srv://<user>:<pass>@cluster0.mongodb.net/dbname
-S3_BUCKET=your-bucket
-S3_REGION=us-east-1
-FLASK_ML_URL=http://localhost:5000
-JWT_SECRET=very_secret
-```
-
-## 9.3 Setup Flask ML Service (ml\_service/)
-
-```bash
-cd ../ml_service
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env for VECTOR_DB keys, EMBEDDINGS_PROVIDER keys
-python app.py  # or flask run
-```
-
-**.env.example (ml\_service)**
-
-```
-FLASK_ENV=development
-VECTOR_DB=pinecone   # or qdrant/weaviate
-PINECONE_API_KEY=
-PINECONE_ENV=
-EMBEDDING_MODEL=all-MiniLM-L6-v2
-LLM_API_KEY=  # optional - for tailoring
-```
-
 **requirements.txt (ml\_service)**
 
 ```
