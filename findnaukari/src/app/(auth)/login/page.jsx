@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ROLES = [
   { key: "student", label: "Student" },
@@ -9,18 +10,43 @@ const ROLES = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
   const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setIsSubmitting(true);
+
     try {
-      // TODO: integrate with real auth endpoint
-      await new Promise((r) => setTimeout(r, 900));
-      // Redirect based on role later
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
+        return;
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Redirect based on role
+      if (data.user.role === 'student') {
+        router.push('/dashboard/student');
+      } else {
+        router.push('/dashboard/recruiter');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -77,6 +103,12 @@ export default function LoginPage() {
                 );
               })}
             </div>
+
+            {error && (
+              <div className="mt-4 p-3 rounded-lg text-sm" style={{ backgroundColor: "#f8d7da", color: "#721c24" }}>
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="space-y-1">

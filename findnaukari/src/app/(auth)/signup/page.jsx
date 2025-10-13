@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ROLES = [
   { key: "student", label: "Student" },
@@ -9,6 +10,7 @@ const ROLES = [
 ];
 
 export default function SignupPage() {
+  const router = useRouter();
   const [role, setRole] = useState("student");
   const [form, setForm] = useState({
     name: "",
@@ -25,6 +27,7 @@ export default function SignupPage() {
     hiringFocus: "", // roles/skills
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const isStudent = role === "student";
 
@@ -42,11 +45,54 @@ export default function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (disabled) return;
+    
+    setError("");
     setIsSubmitting(true);
+
     try {
-      // TODO: connect to backend. For now simulate
-      await new Promise((r) => setTimeout(r, 900));
-      // Next: route to dashboard based on role
+      // Prepare data for API
+      const userData = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: role,
+      };
+
+      // Add role-specific fields
+      if (role === "student") {
+        userData.headline = form.headline;
+        userData.topSkills = form.topSkills;
+        userData.experienceYears = form.experienceYears ? parseFloat(form.experienceYears) : 0;
+      } else {
+        userData.company = form.company;
+        userData.position = form.position;
+        userData.hiringFocus = form.hiringFocus;
+      }
+
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
+        return;
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Redirect based on role
+      if (data.user.role === 'student') {
+        router.push('/dashboard/student');
+      } else {
+        router.push('/dashboard/recruiter');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -98,6 +144,18 @@ export default function SignupPage() {
                 );
               })}
             </div>
+
+            {error && (
+              <div className="mt-4 p-3 rounded-lg text-sm" style={{ backgroundColor: "#f8d7da", color: "#721c24" }}>
+                {error}
+              </div>
+            )}
+
+            {form.password && form.confirmPassword && form.password !== form.confirmPassword && (
+              <div className="mt-4 p-3 rounded-lg text-sm" style={{ backgroundColor: "#fff3cd", color: "#856404" }}>
+                Passwords do not match
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
