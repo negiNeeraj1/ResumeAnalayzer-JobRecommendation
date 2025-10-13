@@ -6,10 +6,6 @@
 
 Make sure your `.env.local` file contains the following variables:
 
-```env
-# MongoDB Connection String
-MONGODB_URI=mongodb://localhost:27017/findnaukari
-# OR for MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/findnaukari
 
 # JWT Secret (use a strong random string)
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
