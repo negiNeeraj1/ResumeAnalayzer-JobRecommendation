@@ -55,14 +55,11 @@ export async function POST(request) {
     let parsedData;
     try {
       console.log('🔄 API: Calling Flask ML service at http://localhost:5000/parse-resume');
-      console.log('📊 API: File size:', file.size, 'bytes');
+      console.log('📊 API: Flask FormData size:', flaskFormData.get('file').size);
       
       const flaskResponse = await fetch('http://localhost:5000/parse-resume', {
         method: 'POST',
         body: flaskFormData,
-        headers: {
-          // Don't set Content-Type, let browser set it with boundary for FormData
-        },
       });
 
       console.log('📥 API: Flask response status:', flaskResponse.status);
@@ -70,32 +67,25 @@ export async function POST(request) {
       if (!flaskResponse.ok) {
         const errorText = await flaskResponse.text();
         console.error('❌ Flask error response:', errorText);
-        throw new Error(`ML service error (${flaskResponse.status}): ${errorText}`);
+        throw new Error(`ML service failed with status ${flaskResponse.status}`);
       }
 
       parsedData = await flaskResponse.json();
-      console.log('✅ Flask parsed data successfully');
-      console.log('📊 Skills found:', parsedData.data?.skills?.length || 0);
+      console.log('✅ Flask parsed data:', parsedData);
     } catch (mlError) {
-      console.error('❌ ML service error:', mlError);
+      console.error('❌ ML service error:', mlError.message);
       
-      // Check if Flask is running
-      const errorMessage = mlError.message.includes('fetch failed') || mlError.message.includes('ECONNREFUSED')
-        ? 'Flask ML service is not running. Please start Flask server on port 5000.'
-        : `ML service error: ${mlError.message}`;
-      
+      // Return error to user instead of silently failing
       return NextResponse.json({
         success: false,
-        error: errorMessage
+        error: `ML service unavailable: ${mlError.message}. Please make sure Flask is running on port 5000.`
       }, { status: 503 });
     }
 
     // 4. Connect to database and save resume
-    console.log('💾 API: Connecting to MongoDB...');
     await connectDB();
-    console.log('✅ API: MongoDB connected');
 
-    const resumeData = {
+    const resume = await Resume.create({
       userId: auth.user.userId,
       filename: file.name,
       rawText: parsedData.data?.raw_text || '',
@@ -104,23 +94,12 @@ export async function POST(request) {
       phone: parsedData.data?.phone || null,
       status: parsedData.success ? 'parsed' : 'failed',
       uploadedAt: new Date(),
-    };
-
-    console.log('💾 API: Saving resume to MongoDB...');
-    console.log('📊 API: Resume data:', {
-      userId: resumeData.userId,
-      filename: resumeData.filename,
-      skillCount: resumeData.skills.length,
-      status: resumeData.status
     });
-
-    const resume = await Resume.create(resumeData);
-    console.log('✅ API: Resume saved to MongoDB with ID:', resume._id);
 
     // 5. Return success response
     return NextResponse.json({
       success: true,
-      message: 'Resume uploaded successfully and saved to MongoDB',
+      message: 'Resume uploaded and parsed successfully',
       resumeId: resume._id,
       data: {
         skills: resume.skills,
@@ -128,7 +107,6 @@ export async function POST(request) {
         phone: resume.phone,
         skillCount: resume.skills.length,
         uploadedAt: resume.uploadedAt,
-        status: resume.status,
       }
     }, { status: 201 });
 

@@ -87,7 +87,6 @@ export default function ResumeUploadPage() {
     
     if (!file) {
       console.log('❌ No file selected!');
-      setError('Please select a file first');
       return;
     }
 
@@ -105,7 +104,7 @@ export default function ResumeUploadPage() {
         }
         return prev + 10;
       });
-    }, 300);
+    }, 200);
 
     try {
       const formData = new FormData();
@@ -123,9 +122,9 @@ export default function ResumeUploadPage() {
       console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ HTTP Error:', response.status, errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to upload`);
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
@@ -139,18 +138,16 @@ export default function ResumeUploadPage() {
         setResult(data);
         setTimeout(() => {
           setProgress(0);
-          setUploading(false);
         }, 1000);
       } else {
         console.error('❌ Upload failed:', data.error);
         setError(data.error || 'Upload failed. Please try again.');
         setProgress(0);
-        setUploading(false);
       }
     } catch (err) {
       console.error('❌ Network error:', err);
       clearInterval(progressInterval);
-      setError(`Upload failed: ${err.message}`);
+      setError(`Upload failed: ${err.message}. Please check your connection and try again.`);
       setProgress(0);
       setUploading(false);
     }
@@ -282,18 +279,13 @@ export default function ResumeUploadPage() {
 
                   {/* Progress Bar */}
                   {uploading && (
-                    <div className="mt-6 space-y-3">
-                      <div className="text-center">
-                        <p className="text-xl font-bold mb-2 animate-pulse" style={{ color: '#8B7D6B' }}>
-                          🔄 Analyzing Resume... Please Wait
-                        </p>
-                      </div>
+                    <div className="mt-6">
                       <div className="flex justify-between mb-2">
                         <span className="text-sm font-medium" style={{ color: '#8B7D6B' }}>
                           {progress < 30 ? '📤 Uploading to server...' : 
                            progress < 60 ? '🔍 Extracting text from PDF...' :
                            progress < 90 ? '🤖 AI analyzing skills & details...' :
-                           '💾 Saving to MongoDB database...'}
+                           '💾 Saving to database...'}
                         </span>
                         <span className="text-sm font-medium" style={{ color: '#8B7D6B' }}>
                           {progress}%
@@ -308,8 +300,8 @@ export default function ResumeUploadPage() {
                           }}
                         />
                       </div>
-                      <p className="text-xs mt-2 text-center font-medium" style={{ color: '#8B7D6B' }}>
-                        ⏱️ This may take 10-20 seconds...
+                      <p className="text-xs mt-2 text-center" style={{ color: '#8B7D6B' }}>
+                        This may take a few moments...
                       </p>
                     </div>
                   )}
