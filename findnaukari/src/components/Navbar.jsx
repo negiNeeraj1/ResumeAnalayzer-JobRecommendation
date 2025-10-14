@@ -78,9 +78,7 @@ export const Navbar = () => {
               <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200" style={{ color: '#B6AE9F' }}>
                 Home
               </Link>
-              <Link href="/analyze" className="block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 hover:bg-white/20" style={{ color: '#B6AE9F' }}>
-                Analyze Resume
-              </Link>
+              
               <Link href="/jobs" className="block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 hover:bg-white/20" style={{ color: '#B6AE9F' }}>
                 Find Jobs
               </Link>
