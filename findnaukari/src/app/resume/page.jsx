@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -12,6 +12,28 @@ export default function ResumeUploadPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    console.log('👤 User logged in:', user ? 'Yes' : 'No');
+    if (!user) {
+      console.log('⚠️ No user found, redirecting to login');
+      setError('Please login to upload resume');
+    }
+  }, []);
+
+  // Debug file state changes
+  useEffect(() => {
+    console.log('📁 File state changed:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileSize: file?.size,
+      uploading: uploading,
+      error: error,
+      result: !!result
+    });
+  }, [file, uploading, error, result]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -60,8 +82,16 @@ export default function ResumeUploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    console.log('🎯 handleUpload called');
+    console.log('📁 File:', file);
+    
+    if (!file) {
+      console.log('❌ No file selected!');
+      setError('Please select a file first');
+      return;
+    }
 
+    console.log('✅ Starting upload...');
     setUploading(true);
     setError('');
     setProgress(0);
@@ -75,36 +105,53 @@ export default function ResumeUploadPage() {
         }
         return prev + 10;
       });
-    }, 200);
+    }, 300);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
+
+      console.log('📤 Uploading resume...', file.name);
+      console.log('📊 FormData contents:', Array.from(formData.entries()));
 
       const response = await fetch('/api/resume/upload', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ HTTP Error:', response.status, errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to upload`);
+      }
+
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (data.success) {
+        console.log('✅ Resume uploaded successfully!');
         setResult(data);
         setTimeout(() => {
           setProgress(0);
+          setUploading(false);
         }, 1000);
       } else {
+        console.error('❌ Upload failed:', data.error);
         setError(data.error || 'Upload failed. Please try again.');
         setProgress(0);
+        setUploading(false);
       }
     } catch (err) {
+      console.error('❌ Network error:', err);
       clearInterval(progressInterval);
-      setError('Network error. Please check your connection and try again.');
+      setError(`Upload failed: ${err.message}`);
       setProgress(0);
-    } finally {
       setUploading(false);
     }
   };
@@ -235,10 +282,18 @@ export default function ResumeUploadPage() {
 
                   {/* Progress Bar */}
                   {uploading && (
-                    <div className="mt-6">
+                    <div className="mt-6 space-y-3">
+                      <div className="text-center">
+                        <p className="text-xl font-bold mb-2 animate-pulse" style={{ color: '#8B7D6B' }}>
+                          🔄 Analyzing Resume... Please Wait
+                        </p>
+                      </div>
                       <div className="flex justify-between mb-2">
                         <span className="text-sm font-medium" style={{ color: '#8B7D6B' }}>
-                          Analyzing your resume...
+                          {progress < 30 ? '📤 Uploading to server...' : 
+                           progress < 60 ? '🔍 Extracting text from PDF...' :
+                           progress < 90 ? '🤖 AI analyzing skills & details...' :
+                           '💾 Saving to MongoDB database...'}
                         </span>
                         <span className="text-sm font-medium" style={{ color: '#8B7D6B' }}>
                           {progress}%
@@ -253,17 +308,26 @@ export default function ResumeUploadPage() {
                           }}
                         />
                       </div>
+                      <p className="text-xs mt-2 text-center font-medium" style={{ color: '#8B7D6B' }}>
+                        ⏱️ This may take 10-20 seconds...
+                      </p>
                     </div>
                   )}
 
                   {/* Upload Button */}
                   <button
-                    onClick={handleUpload}
+                    onClick={() => {
+                      console.log('🔥 BUTTON CLICKED!');
+                      console.log('📁 File exists:', !!file);
+                      console.log('🔄 Uploading state:', uploading);
+                      console.log('📄 File name:', file?.name);
+                      handleUpload();
+                    }}
                     disabled={!file || uploading}
                     className="w-full mt-6 py-3 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    style={{ backgroundColor: '#B6AE9F', color: '#FBF3D1' }}
+                    style={{ backgroundColor: uploading ? '#8B7D6B' : '#B6AE9F', color: '#FBF3D1' }}
                   >
-                    {uploading ? '⏳ Analyzing...' : '🚀 Analyze Resume'}
+                    {uploading ? '⏳ Analyzing Resume... Please Wait' : '🚀 Analyze Resume'}
                   </button>
                 </>
               ) : (
@@ -271,17 +335,18 @@ export default function ResumeUploadPage() {
                 <div className="space-y-6 animate-fade-in">
                   {/* Success Header */}
                   <div className="text-center">
-                    <div className="inline-block p-4 rounded-full mb-4 animate-bounce-slow" style={{ backgroundColor: '#B6AE9F' }}>
-                      <svg className="w-12 h-12" style={{ color: '#FBF3D1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                    <div className="inline-block p-6 rounded-full mb-4 animate-bounce-slow shadow-lg" style={{ backgroundColor: '#B6AE9F' }}>
+                      <span className="text-6xl">🎉</span>
                     </div>
                     <h2 className="text-3xl font-bold mb-2" style={{ color: '#8B7D6B' }}>
-                      Resume Analyzed Successfully!
+                      Resume Uploaded Successfully!
                     </h2>
-                    <p style={{ color: '#6B5B47' }}>
-                      We found {result.data.skillCount} skills in your resume
+                    <p className="text-lg mb-2" style={{ color: '#6B5B47' }}>
+                      Your resume has been analyzed and saved to MongoDB database
                     </p>
+                    <div className="inline-block px-4 py-2 rounded-full text-sm font-medium mb-3" style={{ backgroundColor: '#FBF3D1', color: '#8B7D6B' }}>
+                      ✅ Found {result.data.skillCount} skills • Data saved to database
+                    </div>
                   </div>
 
                   {/* Info Cards */}
