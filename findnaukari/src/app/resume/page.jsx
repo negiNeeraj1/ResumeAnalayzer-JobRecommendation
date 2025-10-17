@@ -136,6 +136,7 @@ export default function ResumeUploadPage() {
       if (data.success) {
         console.log('✅ Resume uploaded successfully!');
         setResult(data);
+        setUploading(false); // ✅ Reset uploading state
         setTimeout(() => {
           setProgress(0);
         }, 1000);
@@ -143,6 +144,7 @@ export default function ResumeUploadPage() {
         console.error('❌ Upload failed:', data.error);
         setError(data.error || 'Upload failed. Please try again.');
         setProgress(0);
+        setUploading(false); // ✅ Reset uploading state on failure
       }
     } catch (err) {
       console.error('❌ Network error:', err);
@@ -158,6 +160,7 @@ export default function ResumeUploadPage() {
     setResult(null);
     setError('');
     setProgress(0);
+    setUploading(false); // ✅ Reset uploading state
   };
 
   return (
@@ -341,27 +344,51 @@ export default function ResumeUploadPage() {
                     </div>
                   </div>
 
-                  {/* Info Cards */}
+                  {/* Personal Info Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {result.data.email && (
+                    {result.data.personalInfo?.name && (
                       <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
-                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>📧 Email</p>
-                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.email}</p>
+                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>👤 Name</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.personalInfo.name}</p>
                       </div>
                     )}
-                    {result.data.phone && (
+                    {result.data.personalInfo?.email && (
+                      <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>📧 Email</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.personalInfo.email}</p>
+                      </div>
+                    )}
+                    {result.data.personalInfo?.phone && (
                       <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
                         <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>📱 Phone</p>
-                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.phone}</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.personalInfo.phone}</p>
+                      </div>
+                    )}
+                    {result.data.personalInfo?.location && (
+                      <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>📍 Location</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.personalInfo.location}</p>
+                      </div>
+                    )}
+                    {result.data.yearsOfExperience && (
+                      <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>💼 Experience</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.yearsOfExperience} years</p>
+                      </div>
+                    )}
+                    {result.data.profileCompleteness && (
+                      <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                        <p className="text-sm font-medium mb-1" style={{ color: '#6B5B47' }}>✨ Profile Completeness</p>
+                        <p className="font-semibold" style={{ color: '#8B7D6B' }}>{result.data.profileCompleteness}%</p>
                       </div>
                     )}
                   </div>
 
                   {/* Skills */}
-                  {result.data.skills.length > 0 && (
-                    <div>
+                  {result.data.skills && result.data.skills.length > 0 && (
+                    <div className="mb-6">
                       <h3 className="text-xl font-bold mb-3" style={{ color: '#8B7D6B' }}>
-                        💼 Skills Detected ({result.data.skills.length})
+                        💼 Skills Detected ({result.data.skillCount || result.data.skills.length})
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         {result.data.skills.map((skill, i) => (
@@ -377,6 +404,93 @@ export default function ResumeUploadPage() {
                             {skill}
                           </span>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {result.data.education && result.data.education.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold mb-3" style={{ color: '#8B7D6B' }}>
+                        🎓 Education ({result.data.educationCount || result.data.education.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {result.data.education.map((edu, i) => (
+                          <div key={i} className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            <p className="font-semibold" style={{ color: '#8B7D6B' }}>
+                              {edu.degree} {edu.field && `in ${edu.field}`}
+                            </p>
+                            {edu.institution && <p className="text-sm" style={{ color: '#6B5B47' }}>{edu.institution}</p>}
+                            {edu.year && <p className="text-xs" style={{ color: '#6B5B47' }}>Year: {edu.year}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Work Experience */}
+                  {result.data.experience && result.data.experience.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold mb-3" style={{ color: '#8B7D6B' }}>
+                        💼 Work Experience ({result.data.experienceCount || result.data.experience.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {result.data.experience.map((exp, i) => (
+                          <div key={i} className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            {exp.position && <p className="font-semibold" style={{ color: '#8B7D6B' }}>{exp.position}</p>}
+                            {exp.company && <p className="text-sm" style={{ color: '#6B5B47' }}>{exp.company}</p>}
+                            {exp.duration && <p className="text-xs" style={{ color: '#6B5B47' }}>{exp.duration}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Certifications */}
+                  {result.data.certifications && result.data.certifications.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold mb-3" style={{ color: '#8B7D6B' }}>
+                        🏆 Certifications ({result.data.certificationCount || result.data.certifications.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {result.data.certifications.map((cert, i) => (
+                          <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            <p className="font-semibold text-sm" style={{ color: '#8B7D6B' }}>{cert.name}</p>
+                            {cert.issuer && <p className="text-xs" style={{ color: '#6B5B47' }}>Issued by: {cert.issuer}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Links */}
+                  {result.data.links && Object.keys(result.data.links).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold mb-3" style={{ color: '#8B7D6B' }}>
+                        🔗 Links
+                      </h3>
+                      <div className="space-y-2">
+                        {result.data.links.linkedin && (
+                          <a href={result.data.links.linkedin} target="_blank" rel="noopener noreferrer" 
+                             className="block p-3 rounded-lg hover:shadow-md transition-all" 
+                             style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            <p className="text-sm font-medium" style={{ color: '#8B7D6B' }}>💼 LinkedIn</p>
+                          </a>
+                        )}
+                        {result.data.links.github && (
+                          <a href={result.data.links.github} target="_blank" rel="noopener noreferrer"
+                             className="block p-3 rounded-lg hover:shadow-md transition-all" 
+                             style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            <p className="text-sm font-medium" style={{ color: '#8B7D6B' }}>💻 GitHub</p>
+                          </a>
+                        )}
+                        {result.data.links.portfolio && (
+                          <a href={result.data.links.portfolio} target="_blank" rel="noopener noreferrer"
+                             className="block p-3 rounded-lg hover:shadow-md transition-all" 
+                             style={{ backgroundColor: 'rgba(182, 174, 159, 0.2)' }}>
+                            <p className="text-sm font-medium" style={{ color: '#8B7D6B' }}>🌐 Portfolio</p>
+                          </a>
+                        )}
                       </div>
                     </div>
                   )}
